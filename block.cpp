@@ -1,9 +1,10 @@
 #include <fstream>
 #include <string>
+#include <algorithm>   // std::find 
 #include <vector>
 
 std::vector<std::string> getArgs(int, char* []);
-void saveApps(std::vector<std::string>, std::vector<std::string>);
+std::vector<std::string> saveApps(std::vector<std::string>, std::vector<std::string>);
 std::vector<std::string> getSavedApps();
 
 std::vector<std::string> getArgs(int argc, char* argv[]) {
@@ -28,20 +29,29 @@ std::vector<std::string> getArgs(int argc, char* argv[]) {
             j++;
             c = argv[i][j];
         }
-        args.push_back(arg);
+        if(arg != "")
+            args.push_back(arg);
         arg = "";
         i++;
     }
     return args;
 }
 
-void saveApps(std::vector<std::string> apps, std::vector<std::string> savedApps) {
+std::vector<std::string> saveApps(std::vector<std::string> newApps, std::vector<std::string> savedApps) {
+    std::vector<std::string> apps;
+    apps.reserve(newApps.size() + savedApps.size());
     std::ofstream log("blocklist.txt", std::ios_base::app);
     if (log.is_open())
-        for (std::string s : apps)
-            if (find(savedApps.begin(), savedApps.end(), s) == savedApps.end())
+        for (std::string s : newApps) {
+            if (find(savedApps.begin(), savedApps.end(), s) == savedApps.end()) {
                 log << s << '\n';
+                apps.push_back(s);
+            }
+        }
     log.close();
+    for (std::string s : savedApps)
+        apps.push_back(s);
+    return apps;
 }
 
 std::vector<std::string> getSavedApps() {
@@ -51,8 +61,8 @@ std::vector<std::string> getSavedApps() {
     if (log.is_open())
         while (!log.eof()) {
             std::getline(log, savedApp);
-            savedApps.push_back(savedApp);
-            savedApp = "";
+            if(savedApp != "" && savedApp != "\n")
+                savedApps.push_back(savedApp);
         }
     log.close();
     return savedApps;
@@ -77,10 +87,8 @@ int main(int argc, char* argv[]) {
     system("taskkill /f /im git-bash.exe");
     system("taskkill /f /im bash.exe"); */
 
-    auto apps = getArgs(argc, argv);
-
+    auto newApps = getArgs(argc, argv);
     auto savedApps = getSavedApps();
-    saveApps(apps, savedApps);
-
+    auto apps = saveApps(newApps, savedApps);
     block(apps);
 }
