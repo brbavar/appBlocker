@@ -30,14 +30,14 @@ std::vector<std::string> getApps() {
 }
 
 int main() {
-    std::cout << "\nLet's start blocking some apps. Type the name \nof the app you want to block, and then \npress "
-        << "the enter/return key exactly once. \nRepeat this process for every app you want \nto block. Once you "
-        << "have entered the final \napp's name, press enter/return twice to start \nblocking all the apps you've "
-        << "listed.\n" << std::endl;
+    std::cout << "\nLet's start blocking some apps. Type the name\nof the app you want to block, and then\npress "
+        << "the enter/return key exactly once.\nRepeat this process for every app you want\nto block. Once you "
+        << "have entered the final\napp's name, press enter/return twice to start\nblocking all the apps you've "
+        << "listed.\n(Warning: If you have Windows Terminal, Command Prompt,\nWindows Powershell, Git Bash, or " 
+        << "any other command\nshell open, don't submit your list of apps\nuntil you're ready for that to be closed.)\n" << std::endl;
     auto apps = getApps();
     std::string cmd = "g++ block.cpp -o appBlocker.exe && appBlocker.exe";
     for(std::string s : apps)
         cmd += " " + s;
     system(cmd.c_str());
-    std::cout << "end main" << std::endl;
 }

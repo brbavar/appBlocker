@@ -3,7 +3,10 @@
 int main(int argc, char* argv[]) {
     system("taskkill /f /im blockStarter.exe");
     system("taskkill /f /im WindowsTerminal.exe");
-    system("taskkill /f /im blockStarter.exe");
+    system("taskkill /f /im cmd.exe");
+    system("taskkill /f /im powershell.exe");
+    system("taskkill /f /im git-bash.exe");
+    system("taskkill /f /im bash.exe");
     while(1) {
         std::string cmd = "taskkill /f /im ";
         /* Skip first command-line arg, which is not the name of
