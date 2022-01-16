@@ -34,7 +34,7 @@ int main() {
     std::cout << "\nLet's start blocking some apps. Type the name\nof the app you want to block, and then\npress "
         << "the enter/return key exactly once.\nRepeat this process for every app you want\nto block. Once you "
         << "have entered the final\napp's name, press enter/return twice to start\nblocking all the apps you've "
-        << "listed." << std::endl; /* \n(Warning: If you have Windows Terminal, Command Prompt,\nWindows Powershell, Git Bash, or " 
+        << "listed.\n" << std::endl; /* \n(Warning: If you have Windows Terminal, Command Prompt,\nWindows Powershell, Git Bash, or " 
         << "any other command\nshell open, don't submit your list of apps\nuntil you're ready for that to be closed.)\n" << std::endl; */
     auto apps = getApps();
     HWND console = GetConsoleWindow();
