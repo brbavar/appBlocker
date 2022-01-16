@@ -10,23 +10,22 @@ std::vector<std::string> getApps() {
     apps.reserve(50);
     int i = 0;
     bool inputEmpty = false;
-    while(!inputEmpty) {
+    while (!inputEmpty) {
         apps.push_back("");
         inputEmpty = true;
         std::getline(std::cin, apps[i]);
-        for(int j = 0; j < apps[i].size(); j++) {
+        for (int j = 0; j < apps[i].size(); j++) {
             char c = apps[i][j];
-            if((int)c > 32 && c != 127 && (int)c != 255)
+            if ((int)c > 32 && c != 127 && (int)c != 255)
                 inputEmpty = false;
             else {
-                if(c == '\r' || c == '\n')
+                if (c == '\r' || c == '\n')
                     break;
                 apps[i][j] = ':';
             }
         }
         i++;
     }
-
     return apps;
 }
 
@@ -40,7 +39,7 @@ int main() {
     HWND console = GetConsoleWindow();
     ShowWindow(console, SW_HIDE);
     std::string cmd = "g++ block.cpp -o appBlocker.exe && appBlocker.exe";
-    for(std::string s : apps)
+    for (std::string s : apps)
         cmd += " " + s;
     system(cmd.c_str());
 }
