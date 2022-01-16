@@ -39,7 +39,7 @@ void saveApps(std::vector<std::string> apps, std::vector<std::string> savedApps)
     std::ofstream log("blocklist.txt", std::ios_base::app);
     if (log.is_open())
         for (std::string s : apps)
-            if (find(savedApps.begin(), savedApps.end(), c) == savedApps.end())
+            if (find(savedApps.begin(), savedApps.end(), s) == savedApps.end())
                 log << s << '\n';
     log.close();
 }
