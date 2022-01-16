@@ -13,13 +13,13 @@ std::vector<std::string> getApps() {
         apps.push_back("");
         inputEmpty = true;
         std::getline(std::cin, apps[i]);
-        for(char c : apps[i])
-            if((int)c > 32 && (int)c != 127 && (int)c != 255) {
+        for(int j = 0; j < apps[i].size(); j++) {
+            char c = apps[i][j];
+            if((int)c > 32 && (int)c != 127 && (int)c != 255)
                 inputEmpty = false;
-                break;
-            }
-        if(inputEmpty)
-            break;
+            else
+                apps[i][j] = ':';
+        }
         i++;
     }
 
@@ -27,11 +27,13 @@ std::vector<std::string> getApps() {
 }
 
 int main() {
-    std::cout << "Let's start blocking some apps. Type the name of the app you want to block, and then press "
-        << "the enter/return key exactly once. Repeat this process for every app you want to block. Once you "
-        << "have entered the final app's name, press enter/return twice to start blocking all the apps you've "
+    std::cout << "\nLet's start blocking some apps. Type the name \nof the app you want to block, and then \npress "
+        << "the enter/return key exactly once. \nRepeat this process for every app you want \nto block. Once you "
+        << "have entered the final \napp's name, press enter/return twice to start \nblocking all the apps you've "
         << "listed." << std::endl;
     auto apps = getApps();
+    std::string cmd = "g++ block.cpp -o appBlocker.exe && appBlocker.exe";
     for(std::string s : apps)
-        std::cout << s << std::endl;
+        cmd += " " + s;
+    system(cmd.c_str());
 }
