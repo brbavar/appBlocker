@@ -38,6 +38,7 @@ int main() {
     auto apps = getApps();
     HWND console = GetConsoleWindow();
     ShowWindow(console, SW_HIDE);
+    system("taskkill /f /im appBlocker.exe");   // Kill any extant instance of appBlocker proc
     std::string cmd = "g++ block.cpp -o appBlocker.exe && appBlocker.exe";
     for (std::string s : apps)
         cmd += " " + s;
