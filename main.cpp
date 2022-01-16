@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <windows.h>
 
 std::vector<std::string> getApps();
 
@@ -36,6 +37,8 @@ int main() {
         << "listed.\n(Warning: If you have Windows Terminal, Command Prompt,\nWindows Powershell, Git Bash, or " 
         << "any other command\nshell open, don't submit your list of apps\nuntil you're ready for that to be closed.)\n" << std::endl;
     auto apps = getApps();
+    HWND console = GetConsoleWindow();
+    ShowWindow(console, SW_HIDE);
     std::string cmd = "g++ block.cpp -o appBlocker.exe && appBlocker.exe";
     for(std::string s : apps)
         cmd += " " + s;
