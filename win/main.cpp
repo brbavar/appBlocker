@@ -19,7 +19,7 @@ std::vector<std::string> getApps() {
             if ((int)c > 32 && c != 127 && (int)c != 255)
                 inputEmpty = false;
             else {
-                if (c == '\r' || c == '\n')
+                if (c == '\n')
                     break;
                 apps[i][j] = ':';
             }
