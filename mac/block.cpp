@@ -1,3 +1,5 @@
+#include <fstream>
+#include <cstdio>
 #include <string>
 #include <vector>
 
