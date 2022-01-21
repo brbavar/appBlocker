@@ -121,11 +121,11 @@ void spawnProc(std::vector<std::string> procNames, std::vector<std::string> apps
 
 
 int main() {
-    std::cout << "\nLet's start blocking some apps. Type the name\nof the app you want to block, and then\npress "
-        << "the enter/return key exactly once.\nRepeat this process for every app you want\nto block. Once you "
-        << "have entered the final\napp's name, press enter/return twice to start\nblocking all the apps you've "
-        << "listed.\n" << std::endl; /* \n(Warning: If you have Windows Terminal, Command Prompt,\nWindows Powershell, Git Bash, or " 
-        << "any other command\nshell open, don't submit your list of apps\nuntil you're ready for that to be closed.)\n" << std::endl; */
+    std::cout << '\n' << "Let's start blocking some apps. Type the name" << '\n' << "of the app you want to block, and then" << '\n' << "press " <<
+        "the enter/return key exactly once." << '\n' << "Repeat this process for every app you want" << '\n' << "to block. Once you " <<
+        "have entered the final" << '\n' << "app's name, press enter/return twice to start" << '\n' << "blocking all the apps you've " <<
+        "listed." << '\n' << '\n'; /* (Warning: If you have Windows Terminal, Command Prompt,\nWindows Powershell, Git Bash, or "
+        << "any other command\nshell open, don't submit your list of apps\nuntil you're ready for that to be closed.)" << '\n' << '\n'; */
     auto newApps = addApps();
     auto savedApps = getSavedApps();
     auto apps = saveApps(newApps, savedApps);
