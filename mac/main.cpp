@@ -38,9 +38,12 @@ std::vector<std::string> addApps() {
         for (char c : app) {
             if ((int)c > 32 && (int)c != 127 && (int)c != 255)
                 inputEmpty = false;
-            else
+            else {
                 if (c == '\n')
                     break;
+                if (c == ' ')
+                    c = ':';
+            }
         }
         if(!inputEmpty)
             apps.push_back(app);
@@ -69,11 +72,11 @@ std::vector<std::string> saveApps(std::vector<std::string> newApps, std::vector<
 
 std::vector<std::string> getSavedApps() {
     std::vector<std::string> savedApps;
-    std::string savedApp;
     system("chmod 400 .blocklist.txt");
     std::ifstream log(".blocklist.txt");
     if (log.is_open())
         while (!log.eof()) {
+            std::string savedApp;
             std::getline(log, savedApp);
             if (savedApp != "" && savedApp != "\n")
                 savedApps.push_back(savedApp);
@@ -104,7 +107,7 @@ void spawnProc(std::vector<std::string> procNames, std::vector<std::string> apps
     std::string proc = procNames[nameDistro(re)];
     
     // Save all PIDs associated with proc before spawn, so new PID can be identified later
-    std::string baseCmd = "ps -ce | awk '/[[:space:]]" + proc + "$/ {print $1}'";
+    std::string baseCmd = "ps -ce | pgrep '[[:space:]]" + proc + "$' | awk '{print $1}'";
     std::string cmd = "mkdir .proc && (" + baseCmd + ") > .proc/preSpawnPIDs.txt";
     std::string pidList = run(baseCmd);
     std::vector<std::string> pids = getListItems(pidList);
@@ -133,7 +136,7 @@ int main() {
     /* HWND console = GetConsoleWindow();    // Need Mac-friendly alternative
     ShowWindow(console, SW_HIDE); */
     
-    std::string procList = run("ps -ce | awk '{print $4}'");
+    std::string procList = run("ps -ce | grep -v grep | awk '{print $4}'");
     auto procNames = getListItems(procList);
     spawnProc(procNames, apps);
 }
