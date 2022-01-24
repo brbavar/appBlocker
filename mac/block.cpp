@@ -93,9 +93,9 @@ std::vector<std::string> getExes(std::vector<std::string> srchRes) {
         for (auto m : matches)
             return {readPlist(m)};
     else {
-        std::cout << "Does any of these look like the app you want to block? Type in every name listed below (excluding the \".app\" extension if desired) " <<
-            "that you think might be the one. Press the return key exactly once after each entry, except for the last, after which you should" <<
-            " press it twice." << '\n' << '\n';
+        std::cout << "Does any of these look like the app you want to block? Type in every name listed below that you think " <<
+            "might be the one. Press the return key exactly once after each entry, except for the last, after which you should" <<
+            " press the return key twice." << '\n' << '\n';
         for (int i = 0; i < srchRes.size(); i++) {
             std::cout << "Drawn from " << ( i == 0 ? "/Applications" : ( i == 1 ? "/System/Applications" : "/System/Library/CoreServices" ));
             std::cout << '\n' << srchRes[i] << '\n';
@@ -135,6 +135,7 @@ bool isBundle(std::vector<std::string>& name) {
             std::vector<std::string> newNames = getExes({srchRes1, srchRes2, srchRes3});
             for (std::string exe : newNames)
                 name.push_back(exe);
+            break;
         }
 
         std::string beg1 = "find /Applications -maxdepth ", beg2 = "find /System/Applications -maxdepth ", 
