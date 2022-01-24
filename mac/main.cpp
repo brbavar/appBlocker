@@ -7,7 +7,6 @@
 #include <random>
 #include <algorithm>   // std::find
 
-
 std::string run(std::string, int);
 std::vector<std::string> addApps();
 std::vector<std::string> saveApps(std::vector<std::string>, std::vector<std::string>);
@@ -45,7 +44,7 @@ std::vector<std::string> addApps() {
                     c = ':';
             }
         }
-        if(!inputEmpty)
+        if (!inputEmpty)
             apps.push_back(app);
     }
     return apps;
@@ -89,8 +88,8 @@ std::vector<std::string> getSavedApps() {
 std::vector<std::string> getListItems(std::string list) {
     std::vector<std::string> items;
     std::string item = "";
-    for(char c : list)
-        if(c != '\n')
+    for (char c : list)
+        if (c != '\n')
             item += c;
         else {
             items.push_back(item);
@@ -121,7 +120,6 @@ void spawnProc(std::vector<std::string> procNames, std::vector<std::string> apps
         cmd += " " + s;
     system(cmd.c_str());
 }
-
 
 int main() {
     std::cout << '\n' << "Let's start blocking some apps. Type the name" << '\n' << "of the app you want to block, and then" << '\n' << "press " <<
