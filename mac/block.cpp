@@ -186,7 +186,7 @@ int main(int argc, char* argv[]) {
                 break;
             }
             std::cout << "Try entering a different name. Hint: If you look in your /Applications (the most likely location), " <<
-                "/System/Applications, and /System/Library/CoreServices folders, you should be able " <<
+                "/System/Applications, /System/Library/CoreServices, and ~/Downloads folders, you should be able " <<
                 "to find the exact name of the app you're attempting to block. Just be sure to leave " <<
                 "off the extension \".app\" when you enter the name, if there is an extension." << '\n';
             std::string name;
