@@ -12,7 +12,7 @@ void block(std::vector<std::vector<std::string> >);
 std::vector<std::string> getListItems(std::string);
 std::string readPlist(std::pair<std::string,int>);
 std::vector<std::string> getExes(std::vector<std::pair<std::string,int> >);
-bool isPackage(std::string&);
+bool isBundle(std::string&);
 bool noApp(std::string);
 
 std::string run(std::string cmd, int size = 100) {
@@ -119,35 +119,44 @@ std::vector<std::string> getExes(std::vector<std::string> srchRes) {
     return exes;
 }
 
-bool isPackage(std::vector<std::string>& name) {
-    std::string end = " | grep '^" + name[0] + ".\?a\?p\?p\?$'";
-    std::string cmd1 = "ls /Applications" + end, cmd2 = "ls /System/Applications" + end,
-        cmd3 = "ls /System/Library/CoreServices" + end;
-    std::string srchRes1 = run(cmd1), srchRes2 = run(cmd2), srchRes3 = run(cmd3);
-    bool answer = srchRes1.size() || srchRes2.size() || srchRes3.size();
-    
-    if (answer) {
-        name.clear();
-        std::vector<std::string> newNames = getExes({srchRes1, srchRes2, srchRes3});
-        for (std::string exe : newNames)
-            name.push_back(exe);
+bool isBundle(std::vector<std::string>& name) {
+    for (int d = 1; ; d++) {
+        std::string end = " -max-depth " + d + " -regex '^" + name[0] + "$'";
+        std::string cmd1 = "find /Applications" + end, cmd2 = "find /System/Applications" + end,
+            cmd3 = "find /System/Library/CoreServices" + end;
+        std::string srchRes1 = run(cmd1), srchRes2 = run(cmd2), srchRes3 = run(cmd3);
+        bool answer = srchRes1.size() || srchRes2.size() || srchRes3.size();
+        
+        if (answer) {
+            name.clear();
+            std::vector<std::string> newNames = getExes({srchRes1, srchRes2, srchRes3});
+            for (std::string exe : newNames)
+                name.push_back(exe);
+            break;
+        }
     }
         
     return answer;
 }
 
 bool noApp(std::string name) {
-    std::string end = " | grep '^" + name + ".\?a\?p\?p\?$'";
-    std::string cmd1 = "ls /Applications" + end, cmd2 = "ls /System/Applications" + end,
-        cmd3 = "ls /System/Library/CoreServices" + end;
-    
-    return
+    if(name.substr(name.size() - 4) != ".app")
+        name += ".app";
+    std::string nameTmp = name;
+    name.insert(name.size() - 4, "\\");
+    std::string end = " | grep '^" + name + "\.app$'";
+    std::string cmd1 = "ls -R /Applications" + end, cmd2 = "ls -R /System/Applications" + end,
+        cmd3 = "ls -R /System/Library/CoreServices" + end;
+    std::string srchRes1 = run(cmd1), srchRes2 = run(cmd2), srchRes3 = run(cmd3);
+    return find(srchRes1.begin(), srchRes1.end(), nameTmp) != srchRes1.end() || 
+        find(srchRes2.begin(), srchRes2.end(), nameTmp) != srchRes2.end() || 
+        find(srchRes3.begin(), srchRes3.end(), nameTmp) != srchRes3.end();
 }
 
 
 int main(int argc, char* argv[]) {
-    std::string spawnExec(argv[0]);
-    std::string spawn = spawnExec.substr(2);
+    std::string spawnExecution(argv[0]);
+    std::string spawn = spawnExecution.substr(2);
     spawn = spawn.substr(6);
     std::string baseCmd = "ps -ce | pgrep '[[:space:]]" + spawn + "$' | awk '{print $1}'";
     std::string cmd = "(" + baseCmd + ") > .proc/postSpawnPIDs.txt";
@@ -158,9 +167,9 @@ int main(int argc, char* argv[]) {
     for (auto v : apps) {
         if (noApp(v[0])) {
             std::cout << "The name \"" + v[0] + "\" does not match any app on your device. ";
-            std::vector<std::string> p{v[0]};
-            if (isPackage(p)) {
-                correct[v[0]] = p;
+            std::vector<std::string> b{v[0]};
+            if (isBundle(b)) {
+                correct[v[0]] = b;
                 break;
             }
             std::cout << "Try entering a different name. Hint: If you look in your /Applications (the most likely location), " <<
