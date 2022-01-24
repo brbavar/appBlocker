@@ -2,18 +2,21 @@
 #include <fstream>
 #include <cstdio>
 #include <string>
+#include <array>
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
 
+const std::array<std::string,4> appDir = { "/Applications", "/System/Applications", 
+    "/System/Library/CoreServices", "~/Downloads" };
 
 std::string run(std::string, int);
 std::vector<std::vector<std::string> > getApps(int, char* []);
 void block(std::vector<std::vector<std::string> >);
 std::vector<std::string> getListItems(std::string);
 std::string readPlist(std::pair<std::string,int>);
-std::vector<std::string> getExes(std::vector<std::pair<std::string,int> >);
-bool isBundle(std::string&);
+std::vector<std::string> getExes(std::array<std::string,4>);
+bool isBndl(std::vector<std::string>&);
 bool noApp(std::string);
 
 std::string run(std::string cmd, int size = 100) {
@@ -61,8 +64,8 @@ void block(std::vector<std::vector<std::string> > apps) {
 std::vector<std::string> getListItems(std::string list) {
     std::vector<std::string> items;
     std::string item = "";
-    for(char c : list)
-        if(c != '\n')
+    for (char c : list)
+        if (c != '\n')
             item += c;
         else {
             items.push_back(item);
@@ -73,99 +76,113 @@ std::vector<std::string> getListItems(std::string list) {
 
 std::string readPlist(std::pair<std::string,int> match) {
     std::string app = match.first;
-    int pathNum = match.second;
-    std::string path = !pathNum ? "Applications/" : ( pathNum == 1 ? "System/Applications/" : ( pathNum == 2 ? "System/Libary/CoreServices/" : "~/Downloads" ));
-    std::string cmd = "defaults read \"/" + path;
+    std::string cmd = "defaults read \"/" + appDir[match.second];
     cmd += app + "/Content/Info\" CFBundleExecutable";
     std::string exe = run(cmd);
     return exe;
 }
 
-std::vector<std::string> getExes(std::vector<std::string> srchRes) {
+std::vector<std::string> getExes(std::array<std::string,4> srchRes) {
     std::vector<std::pair<std::string,int> > matches;
     std::vector<std::string> exes;
     for (int i = 0; i < srchRes.size(); i++)
-        for(std::string item : getListItems(srchRes[i])) {
-            std::pair<std::string,int> match{item, i};
+        for (std::string item : getListItems(srchRes[i])) {
+            std::pair<std::string,int> match { item, i };
             matches.push_back(match);
         }
     if (matches.size() <= 1)
         for (auto m : matches)
-            return {readPlist(m)};
+            return { readPlist(m) };
     else {
         std::cout << "Does any of these look like the app you want to block? Type in every name listed below that you think " <<
             "might be the one. Press the return key exactly once after each entry, except for the last, after which you should" <<
             " press the return key twice." << '\n' << '\n';
-        for (int i = 0; i < srchRes.size(); i++) {
-	  std::cout << "Drawn from " << ( i == 0 ? "/Applications" : ( i == 1 ? "/System/Applications" : ( i == 2 ? "/System/Library/CoreServices" : "~/Downloads" )));
-            std::cout << '\n' << srchRes[i] << '\n';
-        }
+        for (int i = 0; i < 4; i++)
+	        std::cout << "Drawn from " << appDir[i] << '\n' << srchRes[i] << '\n';
         std::string entry = "";
-	std::vector<std::pair<std::string,int> >::iterator end = matches.end();
-        std::vector<std::pair<std::string,int> >::iterator it1 = end, it2 = end, it3 = end, it4 = end;
+        std::array<std::vector<std::pair<std::string,int> >::iterator,4> it;
+        std::array<bool,4> matched;
         bool inputEmpty = false;
-        while ( !inputEmpty || ( it1 == end && it2 == end && it3 == end && it4 == end )) {
+        while (!inputEmpty) {
             std::getline(std::cin, entry);
-            if (entry.size() <= 3 || entry.substr(entry.size() - 4) != ".app")
-                entry += ".app";
-            if(entry.size() == 4 || entry == "\n.app" || entry == "\n.app\n") {
+            if (e.size() <= 3 || e.substr(e.size() - 4) != ".app")
+                e += ".app";
+            if (e.size() == 4 || e == "\n.app" || e == "\n.app\n") {
                 inputEmpty = true;
                 break;
             }
-            std::pair<std::string,int> match1{entry,0}, match2{entry,1}, match3{entry,2}, match4{entry,3};
-            it1 = find(matches.begin(), end, match1), it2 = find(matches.begin(), end, match2),
-	      it3 = find(matches.begin(), end, match3), it4 = find(matches.begin(), end, match4);
-            exes.push_back(readPlist( it1 != end ? match1 : ( it2 != end ? match2 : ( it3 != end ? match3 : match4 ))));
+
+            std::pair<std::string,int> m;
+            m.first = entry;
+            for(int i = 0; i < 4; i++) {
+                m.second = i;
+                it[i] = std::find(matches.begin(), matches.end(), m);
+                matched[i] = it[i] != matches.end();
+                if(matched[i])
+                    break;
+            }
+            exes.push_back(readPlist(m));
         }
     }
     return exes;
 }
 
-bool isBundle(std::vector<std::string>& name) {
-    bool answer = false, deeperToGo = true;
+bool isBndl(std::vector<std::string>& name) {
+    bool confirmed = false, deeperToGo = true;
     
-    for (int d = 1; !answer && deeperToGo; d++) {
-        std::string end = " -maxdepth " + std::to_string(d) + " | grep '" + name[0] + "$' | grep -v \.app";
-        std::string cmd1 = "find /Applications" + end, cmd2 = "find /System/Applications" + end,
-	    cmd3 = "find /System/Library/CoreServices" + end, cmd4 = "find ~/Downloads " + end;
-        std::string srchRes1 = run(cmd1), srchRes2 = run(cmd2), srchRes3 = run(cmd3), srchRes4 = run(cmd4);
-        answer = srchRes1.size() || srchRes2.size() || srchRes3.size() || srchRes4.size();
-        
-        if (answer) {
+    for (int d = 1; !confirmed && deeperToGo; d++) {
+        std::string beg = "find ";
+        std::array<std::string,2> depth = { "-maxdepth " + std::to_string(d), 
+            "-maxdepth " + std::to_string(d + 1) };
+        std::string end = " | grep '" + name[0] + "$' | grep -v \.app";
+
+        std::array<std::string,8> cmd;
+        std::array<std::string,4> srchRes;
+        std::array<bool,4> numResGrows;
+        for (int i = 0; i < 4; i++) {
+            std::string cmd[i] = beg + appDir[i] + depth[0] + end;
+            srchRes[i] = run(cmd[i]);
+            int ind = (i + 1) * 2 - 1;
+            cmd[ind - 1] = beg + appDir[i] + depth[1];
+            cmd[ind] = beg + appDir[i] + depth[0];
+            numResGrows[i] = cmd[ind - 1].size() > cmd[ind].size();
+        }
+
+        confirmed = srchRes[0].size() || srchRes[1].size() || srchRes[2].size() || srchRes[3].size();
+        if (confirmed) {
             name.clear();
-            std::vector<std::string> newNames = getExes({srchRes1, srchRes2, srchRes3, srchRes4});
+            std::vector<std::string> newNames = getExes(srchRes);
             for (std::string exe : newNames)
                 name.push_back(exe);
             break;
         }
 
-        std::string beg1 = "find /Applications -maxdepth ", beg2 = "find /System/Applications -maxdepth ", 
-	    beg3 = "find /System/Library/CoreServices -maxdepth ", beg4 = "find ~/Downloads -maxdepth ";
-        std::string end1 = std::to_string(d + 1), end2 = std::to_string(d);
-        cmd1 = beg1 + end1, cmd2 = beg1 + end2, cmd3 = beg2 + end1;
-        std::string cmd4 = beg2 + end2, cmd5 = beg3 + end1, cmd6 = beg3 + end2, cmd7 = beg4 + end1, cmd8 = beg4 + end2;
-        deeperToGo = run(cmd1).size() > run(cmd2).size() || run(cmd3).size() > run(cmd4).size() || run(cmd5).size() >
-	  run(cmd6).size() || run(cmd8).size() > run(cmd7).size();
+        deeperToGo = numResGrows[0] || numResGrows[1] || numResGrows[2] || numResGrows[3];
     }
         
-    return answer;
+    return confirmed;
 }
 
 bool noApp(std::string name) {
-    if(name.substr(name.size() - 4) != ".app")
+    if (name.substr(name.size() - 4) != ".app")
         name += ".app";
     std::string nameTmp = name;
     name.insert(name.size() - 4, "\\");
-    std::string end = " | grep '^" + name + "\.app$'";
-    std::string cmd1 = "ls -R /Applications" + end, cmd2 = "ls -R /System/Applications" + end,
-      cmd3 = "ls -R /System/Library/CoreServices" + end, cmd4 = "ls -R ~/Downloads";
-    std::string srchRes1 = run(cmd1), srchRes2 = run(cmd2), srchRes3 = run(cmd3), srchRes4 = run(cmd4);
-    return find(srchRes1.begin(), srchRes1.end(), nameTmp) != srchRes1.end() || 
-        find(srchRes2.begin(), srchRes2.end(), nameTmp) != srchRes2.end() || 
-        find(srchRes3.begin(), srchRes3.end(), nameTmp) != srchRes3.end() ||
-        find(srchRes4.begin(), srchRes4.end(), nameTmp) != srchRes4.end());
-}
 
+    std::string beg = "ls -R ";
+    std::string end = " | grep '^" + name + "\.app$'";
+
+    std::array<std::string,4> cmd;
+    std::array<std::string,4> srchRes;
+    std::array<bool,4> foundIn;
+    for (int i = 0; i < 4; i++) {
+        cmd[i] = beg + appDir[i] + end;
+        srchRes[i] = run(cmd[i]);
+        foundIn[i] = find(srchRes[i].begin(), srchRes[i].end(), nameTmp) != srchRes[i].end();
+    }
+
+    return foundIn[0] || foundIn[1] || foundIn[2] || foundIn[3];
+}
 
 int main(int argc, char* argv[]) {
     std::string spawnExecution(argv[0]);
@@ -181,7 +198,7 @@ int main(int argc, char* argv[]) {
         if (noApp(v[0])) {
             std::cout << "The name \"" + v[0] + "\" does not match any app on your device. ";
             std::vector<std::string> b{v[0]};
-            if (isBundle(b)) {
+            if (isBndl(b)) {
                 correct[v[0]] = b;
                 break;
             }
