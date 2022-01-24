@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <algorithm>
 
 
 std::string run(std::string, int);
@@ -120,20 +121,28 @@ std::vector<std::string> getExes(std::vector<std::string> srchRes) {
 }
 
 bool isBundle(std::vector<std::string>& name) {
-    for (int d = 1; ; d++) {
-        std::string end = " -max-depth " + d + " -regex '^" + name[0] + "$'";
+    bool answer = false, deeperToGo = true;
+    
+    for (int d = 1; !answer && deeperToGo; d++) {
+        std::string end = " -maxdepth " + std::to_string(d) + " | grep '" + name[0] + "$' | grep -v \.app";
         std::string cmd1 = "find /Applications" + end, cmd2 = "find /System/Applications" + end,
             cmd3 = "find /System/Library/CoreServices" + end;
         std::string srchRes1 = run(cmd1), srchRes2 = run(cmd2), srchRes3 = run(cmd3);
-        bool answer = srchRes1.size() || srchRes2.size() || srchRes3.size();
+        answer = srchRes1.size() || srchRes2.size() || srchRes3.size();
         
         if (answer) {
             name.clear();
             std::vector<std::string> newNames = getExes({srchRes1, srchRes2, srchRes3});
             for (std::string exe : newNames)
                 name.push_back(exe);
-            break;
         }
+
+        std::string beg1 = "find /Applications -maxdepth ", beg2 = "find /System/Applications -maxdepth ", 
+            beg3 = "find /System/Library/CoreServices -maxdepth ";
+        std::string end1 = std::to_string(d + 1), end2 = std::to_string(d);
+        cmd1 = beg1 + end1, cmd2 = beg1 + end2, cmd3 = beg2 + end1;
+        std::string cmd4 = beg2 + end2, cmd5 = beg3 + end1, cmd6 = beg3 + end2;
+        deeperToGo = run(cmd1).size() > run(cmd2).size() || run(cmd3).size() > run(cmd4).size() || run(cmd5).size() > run(cmd6).size();
     }
         
     return answer;
