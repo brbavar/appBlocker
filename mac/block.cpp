@@ -74,7 +74,7 @@ std::vector<std::string> getListItems(std::string list) {
 std::string readPlist(std::pair<std::string,int> match) {
     std::string app = match.first;
     int pathNum = match.second;
-    std::string path = !pathNum ? "Applications/" : ( pathNum == 1 ? "System/Applications/" : "System/Libary/CoreServices/" );
+    std::string path = !pathNum ? "Applications/" : ( pathNum == 1 ? "System/Applications/" : ( pathNum == 2 ? "System/Libary/CoreServices/" : "~/Downloads" ));
     std::string cmd = "defaults read \"/" + path;
     cmd += app + "/Content/Info\" CFBundleExecutable";
     std::string exe = run(cmd);
@@ -97,13 +97,14 @@ std::vector<std::string> getExes(std::vector<std::string> srchRes) {
             "might be the one. Press the return key exactly once after each entry, except for the last, after which you should" <<
             " press the return key twice." << '\n' << '\n';
         for (int i = 0; i < srchRes.size(); i++) {
-            std::cout << "Drawn from " << ( i == 0 ? "/Applications" : ( i == 1 ? "/System/Applications" : "/System/Library/CoreServices" ));
+	  std::cout << "Drawn from " << ( i == 0 ? "/Applications" : ( i == 1 ? "/System/Applications" : ( i == 2 ? "/System/Library/CoreServices" : "~/Downloads" )));
             std::cout << '\n' << srchRes[i] << '\n';
         }
         std::string entry = "";
-        std::vector<std::pair<std::string,int> >::iterator it1, it2, it3;
+	std::vector<std::pair<std::string,int> >::iterator end = matches.end();
+        std::vector<std::pair<std::string,int> >::iterator it1 = end, it2 = end, it3 = end, it4 = end;
         bool inputEmpty = false;
-        while ( !inputEmpty || ( it1 == matches.end() && it2 == matches.end() && it3 == matches.end() )) {
+        while ( !inputEmpty || ( it1 == end && it2 == end && it3 == end && it4 == end )) {
             std::getline(std::cin, entry);
             if (entry.size() <= 3 || entry.substr(entry.size() - 4) != ".app")
                 entry += ".app";
@@ -111,10 +112,10 @@ std::vector<std::string> getExes(std::vector<std::string> srchRes) {
                 inputEmpty = true;
                 break;
             }
-            std::pair<std::string,int> match1{entry,0}, match2{entry,1}, match3{entry,2};
-            auto it1 = find(matches.begin(), matches.end(), match1), it2 = find(matches.begin(), matches.end(), match2),
-                it3 = find(matches.begin(), matches.end(), match3);
-            exes.push_back(readPlist( it1 != matches.end() ? match1 : ( it2 != matches.end() ? match2 : match3 )));
+            std::pair<std::string,int> match1{entry,0}, match2{entry,1}, match3{entry,2}, match4{entry,3};
+            it1 = find(matches.begin(), end, match1), it2 = find(matches.begin(), end, match2),
+	      it3 = find(matches.begin(), end, match3), it4 = find(matches.begin(), end, match4);
+            exes.push_back(readPlist( it1 != end ? match1 : ( it2 != end ? match2 : ( it3 != end ? match3 : match4 ))));
         }
     }
     return exes;
@@ -126,24 +127,25 @@ bool isBundle(std::vector<std::string>& name) {
     for (int d = 1; !answer && deeperToGo; d++) {
         std::string end = " -maxdepth " + std::to_string(d) + " | grep '" + name[0] + "$' | grep -v \.app";
         std::string cmd1 = "find /Applications" + end, cmd2 = "find /System/Applications" + end,
-            cmd3 = "find /System/Library/CoreServices" + end;
-        std::string srchRes1 = run(cmd1), srchRes2 = run(cmd2), srchRes3 = run(cmd3);
-        answer = srchRes1.size() || srchRes2.size() || srchRes3.size();
+	    cmd3 = "find /System/Library/CoreServices" + end, cmd4 = "find ~/Downloads " + end;
+        std::string srchRes1 = run(cmd1), srchRes2 = run(cmd2), srchRes3 = run(cmd3), srchRes4 = run(cmd4);
+        answer = srchRes1.size() || srchRes2.size() || srchRes3.size() || srchRes4.size();
         
         if (answer) {
             name.clear();
-            std::vector<std::string> newNames = getExes({srchRes1, srchRes2, srchRes3});
+            std::vector<std::string> newNames = getExes({srchRes1, srchRes2, srchRes3, srchRes4});
             for (std::string exe : newNames)
                 name.push_back(exe);
             break;
         }
 
         std::string beg1 = "find /Applications -maxdepth ", beg2 = "find /System/Applications -maxdepth ", 
-            beg3 = "find /System/Library/CoreServices -maxdepth ";
+	    beg3 = "find /System/Library/CoreServices -maxdepth ", beg4 = "find ~/Downloads -maxdepth ";
         std::string end1 = std::to_string(d + 1), end2 = std::to_string(d);
         cmd1 = beg1 + end1, cmd2 = beg1 + end2, cmd3 = beg2 + end1;
-        std::string cmd4 = beg2 + end2, cmd5 = beg3 + end1, cmd6 = beg3 + end2;
-        deeperToGo = run(cmd1).size() > run(cmd2).size() || run(cmd3).size() > run(cmd4).size() || run(cmd5).size() > run(cmd6).size();
+        std::string cmd4 = beg2 + end2, cmd5 = beg3 + end1, cmd6 = beg3 + end2, cmd7 = beg4 + end1, cmd8 = beg4 + end2;
+        deeperToGo = run(cmd1).size() > run(cmd2).size() || run(cmd3).size() > run(cmd4).size() || run(cmd5).size() >
+	  run(cmd6).size() || run(cmd8).size() > run(cmd7).size();
     }
         
     return answer;
@@ -156,11 +158,12 @@ bool noApp(std::string name) {
     name.insert(name.size() - 4, "\\");
     std::string end = " | grep '^" + name + "\.app$'";
     std::string cmd1 = "ls -R /Applications" + end, cmd2 = "ls -R /System/Applications" + end,
-        cmd3 = "ls -R /System/Library/CoreServices" + end;
-    std::string srchRes1 = run(cmd1), srchRes2 = run(cmd2), srchRes3 = run(cmd3);
+      cmd3 = "ls -R /System/Library/CoreServices" + end, cmd4 = "ls -R ~/Downloads";
+    std::string srchRes1 = run(cmd1), srchRes2 = run(cmd2), srchRes3 = run(cmd3), srchRes4 = run(cmd4);
     return find(srchRes1.begin(), srchRes1.end(), nameTmp) != srchRes1.end() || 
         find(srchRes2.begin(), srchRes2.end(), nameTmp) != srchRes2.end() || 
-        find(srchRes3.begin(), srchRes3.end(), nameTmp) != srchRes3.end();
+        find(srchRes3.begin(), srchRes3.end(), nameTmp) != srchRes3.end() ||
+        find(srchRes4.begin(), srchRes4.end(), nameTmp) != srchRes4.end());
 }
 
 
