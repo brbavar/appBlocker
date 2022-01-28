@@ -34,14 +34,15 @@ std::vector<std::string> addApps() {
         inputEmpty = true;
         std::string app = "";
         std::getline(std::cin, app);
-        for (char c : app) {
+        for (int i = 0; i < app.size(); i++) {
+            char c = app[i];
             if ((int)c > 32 && (int)c != 127 && (int)c != 255)
                 inputEmpty = false;
             else {
                 if (c == '\n')
                     break;
                 if (c == ' ')
-                    c = ':';
+                    app[i] = ':';
             }
         }
         if (!inputEmpty)
@@ -116,8 +117,15 @@ void spawnProc(std::vector<std::string> procNames, std::vector<std::string> apps
         spawnProc(procNames, apps);
     
     cmd = "g++ -std=c++11 block.cpp -o " + proc + " && mv " + proc + " .proc && ./.proc/" + proc;
-    for (std::string s : apps)
+    for (std::string s : apps) {
+        int pos = s.find(' ');
+        while (pos != std::string::npos) {
+            s.insert(s.begin() + pos, ':');
+            s.erase(s.begin() + pos + 1);
+            pos = s.find(' ');
+        }
         cmd += " " + s;
+    }
     system(cmd.c_str());
 }
 
