@@ -16,8 +16,7 @@ void block(std::vector<std::vector<std::string> >);
 std::vector<std::string> getListItems(std::string);
 std::string readPlist(std::pair<std::string,int>);
 std::vector<std::string> getExes(std::array<std::string,4>);
-bool isBndl(std::vector<std::string>&);
-bool noApp(std::string);
+bool canBlock(std::vector<std::string>&);
 
 std::string run(std::string cmd, int size = 100) {
     std::string output = "";
@@ -37,14 +36,11 @@ std::vector<std::vector<std::string> > getApps(int argc, char* argv[]) {
         we were asked to block, but rather of spawned proc */
     for (int i = 1; i < argc; i++) {
         std::string app(argv[i]);
-        if (app.find(':') != std::string::npos) {
-            app = "";
-            for (int j = 0; j < argc; j++) {
-                char c = argv[i][j];
-                if (c == ':')
-                    c = ' ';
-                app += c;
-            }
+        int pos = app.find(':');
+        while (pos != std::string::npos) {
+            app.insert(app.begin() + pos, ' ');
+            app.erase(app.begin() + pos + 1);
+            pos = app.find(':');
         }
         std::vector<std::string> v{app};
         apps.push_back(v);
@@ -56,6 +52,12 @@ void block(std::vector<std::vector<std::string> > apps) {
     while (1)
         for (auto v : apps)
             for (std::string s : v) {
+                if(!s.size())
+                    continue;
+                else
+                    if (s.size() > 3 && s.substr(s.size() - 4) == ".app")
+                        s = s.substr(0, s.size() - 4);
+                std::cout << "Blocking " << s;
                 std::string cmd = "killall " + s;
                 system(cmd.c_str());
             }
@@ -76,8 +78,8 @@ std::vector<std::string> getListItems(std::string list) {
 
 std::string readPlist(std::pair<std::string,int> match) {
     std::string app = match.first;
-    std::string cmd = "defaults read \"/" + appDir[match.second];
-    cmd += app + "/Content/Info\" CFBundleExecutable";
+    std::string cmd = "defaults read \"" + app;
+    cmd += "/Contents/Info\" CFBundleExecutable";
     std::string exe = run(cmd);
     return exe;
 }
@@ -94,23 +96,23 @@ std::vector<std::string> getExes(std::array<std::string,4> srchRes) {
         for (auto m : matches)
             return { readPlist(m) };
     else {
-        std::cout << "Does any of these look like the app you want to block? Type in every name listed below that you think " <<
-            "might be the one. Press the return key exactly once after each entry, except for the last, after which you should" <<
+        std::cout << "Does any of these look like the app you want to block? Type, in full, every path listed below that you think " <<
+            "might lead to that app. Press the return key exactly once after each entry, except for the last, after which you should" <<
             " press the return key twice." << '\n' << '\n';
-        for (int i = 0; i < 4; i++)
-	        std::cout << "Drawn from " << appDir[i] << '\n' << srchRes[i] << '\n';
+        for (int i = 0; i < 4; i++) {
+            if(srchRes[i].size())
+	            std::cout << "NAMES DRAWN FROM " << appDir[i] << '\n' << '\n' << srchRes[i] << '\n';
+        }
         std::string entry = "";
         std::array<std::vector<std::pair<std::string,int> >::iterator,4> it;
         std::array<bool,4> matched;
         bool inputEmpty = false;
         while (!inputEmpty) {
             std::getline(std::cin, entry);
-            if (e.size() <= 3 || e.substr(e.size() - 4) != ".app")
-                e += ".app";
-            if (e.size() == 4 || e == "\n.app" || e == "\n.app\n") {
-                inputEmpty = true;
-                break;
-            }
+            if (entry.size() <= 3 || entry.substr(entry.size() - 4) != ".app")
+               entry+= ".app";
+            if (entry.size() == 4 || entry == "\n.app" || entry == "\n.app\n")
+                return exes;
 
             std::pair<std::string,int> m;
             m.first = entry;
@@ -124,64 +126,69 @@ std::vector<std::string> getExes(std::array<std::string,4> srchRes) {
             exes.push_back(readPlist(m));
         }
     }
+
     return exes;
 }
 
-bool isBndl(std::vector<std::string>& name) {
-    bool confirmed = false, deeperToGo = true;
-    
-    for (int d = 1; !confirmed && deeperToGo; d++) {
-        std::string beg = "find ";
-        std::array<std::string,2> depth = { "-maxdepth " + std::to_string(d), 
-            "-maxdepth " + std::to_string(d + 1) };
-        std::string end = " | grep '" + name[0] + "$' | grep -v \.app";
+bool canBlock(std::vector<std::string>& nameVec) {
+    std::string name = nameVec[0];
+    std::string appName = name, bndlName = name;
 
+    if (name.substr(name.size() - 4) != ".app")
+        appName += ".app";
+    appName.insert(appName.size() - 4, "\\");
+
+    if (name.substr(name.size() - 4) == ".app")
+        bndlName = name.substr(0, name.size() - 4);
+
+    bool deeperToGo = true;
+    std::string beg = "find '";
+    std::string appEnd = " | grep '" + appName + "$'";
+    std::string bndlEnd = bndlName + "' -regex '.*\\.app$' | grep -v '\\.app/'";
+
+    for (int d = 1; deeperToGo; d++) {
+        std::array<std::string,2> depth = { " -maxdepth " + std::to_string(d), 
+            " -maxdepth " + std::to_string(d + 1) };
+
+        std::array<std::string,8> appCmd;
         std::array<std::string,8> cmd;
-        std::array<std::string,4> srchRes;
+        std::array<std::string,4> appSrchRes;
         std::array<bool,4> numResGrows;
         for (int i = 0; i < 4; i++) {
-            std::string cmd[i] = beg + appDir[i] + depth[0] + end;
-            srchRes[i] = run(cmd[i]);
+            appCmd[i] = beg + appDir[i] + '\'' + depth[0] + appEnd;
+            appSrchRes[i] = run(appCmd[i]);
+            if(appSrchRes[i].size()) { 
+                nameVec.clear();
+                std::vector<std::string> newNames = getExes(appSrchRes);
+                for (std::string exe : newNames)
+                    nameVec.push_back(exe);
+                return true;
+            }
+
             int ind = (i + 1) * 2 - 1;
             cmd[ind - 1] = beg + appDir[i] + depth[1];
             cmd[ind] = beg + appDir[i] + depth[0];
             numResGrows[i] = cmd[ind - 1].size() > cmd[ind].size();
         }
-
-        confirmed = srchRes[0].size() || srchRes[1].size() || srchRes[2].size() || srchRes[3].size();
-        if (confirmed) {
-            name.clear();
-            std::vector<std::string> newNames = getExes(srchRes);
-            for (std::string exe : newNames)
-                name.push_back(exe);
-            break;
-        }
-
         deeperToGo = numResGrows[0] || numResGrows[1] || numResGrows[2] || numResGrows[3];
     }
-        
-    return confirmed;
-}
 
-bool noApp(std::string name) {
-    if (name.substr(name.size() - 4) != ".app")
-        name += ".app";
-    std::string nameTmp = name;
-    name.insert(name.size() - 4, "\\");
 
-    std::string beg = "ls -R ";
-    std::string end = " | grep '^" + name + "\.app$'";
-
-    std::array<std::string,4> cmd;
-    std::array<std::string,4> srchRes;
-    std::array<bool,4> foundIn;
+    std::array<std::string,4> bndlSrchRes;
+    std::array<std::string,8> bndlCmd;
     for (int i = 0; i < 4; i++) {
-        cmd[i] = beg + appDir[i] + end;
-        srchRes[i] = run(cmd[i]);
-        foundIn[i] = find(srchRes[i].begin(), srchRes[i].end(), nameTmp) != srchRes[i].end();
+        bndlCmd[i] = beg + appDir[i] + '/' + bndlEnd;
+        bndlSrchRes[i] = run(bndlCmd[i]);
+        if (bndlSrchRes[i].size()) {
+            nameVec.clear();
+            std::vector<std::string> newNames = getExes(bndlSrchRes);
+            for (std::string exe : newNames)
+                nameVec.push_back(exe);
+            return true;
+        }
     }
 
-    return foundIn[0] || foundIn[1] || foundIn[2] || foundIn[3];
+    return false;
 }
 
 int main(int argc, char* argv[]) {
@@ -192,27 +199,21 @@ int main(int argc, char* argv[]) {
     std::string cmd = "(" + baseCmd + ") > .proc/postSpawnPIDs.txt";
     system(cmd.c_str());
     
-    std::vector<std::vector<std::string> > apps = getApps(argc, argv);
+    auto apps = getApps(argc, argv);
     std::unordered_map<std::string,std::vector<std::string> > correct;
     for (auto v : apps) {
-        if (noApp(v[0])) {
-            std::cout << "The name \"" + v[0] + "\" does not match any app on your device. ";
-            std::vector<std::string> b{v[0]};
-            if (isBndl(b)) {
-                correct[v[0]] = b;
-                break;
-            }
-            std::cout << "Try entering a different name. Hint: If you look in your /Applications (the most likely location), " <<
-                "/System/Applications, /System/Library/CoreServices, and ~/Downloads folders, you should be able " <<
-                "to find the exact name of the app you're attempting to block. Just be sure to leave " <<
-                "off the extension \".app\" when you enter the name, if there is an extension." << '\n';
-            std::string name;
-            std::getline(std::cin, name);
-            correct[v[0]] = {name};
+        std::string entry = v[0];
+        while (v.size() ==  1 && !canBlock(v)) {
+            std::cout << "The name \"" + v[0] + "\" does not match any app on your device. Try entering a different" <<
+                " name. Hint: If you look in your /Applications (the most likely location), /System/Applications, " <<
+                "/System/Library/CoreServices, and ~/Downloads folders, you should be able to find the exact name of" << 
+                " the app you're attempting to block." << '\n' << '\n';
+            std::getline(std::cin, v[0]);
         }
+        correct[entry] = v;
     }
     for (auto mapIt : correct) {
-        std::vector<std::string> key{mapIt.first};
+        std::vector<std::string> key { mapIt.first };
         auto vecIt = find(apps.begin(), apps.end(), key);
         if (vecIt != apps.end())
             apps[vecIt - apps.begin()] = correct[mapIt.first];
