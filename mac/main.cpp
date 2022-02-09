@@ -135,7 +135,6 @@ bool canBlock(std::string name, std::vector<std::string>& names, std::vector<std
     std::string end = " 2>/dev/null | grep '" + appName + "$'";
     std::string middle;
 
-    system("clear -x");
     std::cout << "Loading..." << '\n';
     for (int d = 1; deeperToGo; d++) {
         std::array<std::string,2> depth = { " -maxdepth " + std::to_string(d), 
