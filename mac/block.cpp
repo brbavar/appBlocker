@@ -35,6 +35,8 @@ void block(std::vector<std::string> apps) {
                 if (s.size() > 3 && s.substr(s.size() - 4) == ".app")
                     s = s.substr(0, s.size() - 4);
             std::string cmd = "killall " + s;
+            cmd += " 2>/dev/null";
+            std::cout << "The specified apps are now blocked." << '\n' << '\n';
             system(cmd.c_str());
         }
 }
