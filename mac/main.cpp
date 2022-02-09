@@ -211,12 +211,12 @@ std::vector<std::string> saveNames(std::vector<std::string> newNames, std::vecto
 }
 
 void spawnProc(std::vector<std::string> procNames, std::vector<std::string> names) {    
-    std::string cmd = "g++ -std=c++11 block.cpp -o block && mv block /usr/local/libexec && /usr/libexec/PlistBuddy -c ";
+    std::string cmd = "g++ -std=c++11 block.cpp -o block && ./block";/* && mv block /usr/local/libexec && /usr/libexec/PlistBuddy -c ";
     cmd += "'add Label string block' -c 'add AbandonProcessGroup bool true' -c 'add KeepAlive bool true' -c 'add RunAtLoad bool true' "; 
     cmd += "-c 'add ProgramArguments array' -c 'add ProgramArguments: string /usr/local/libexec/block' block.plist && ";
     cmd += "chmod 644 block.plist && chown `whoami` block.plist && ";
     cmd += "mv block.plist ~/Library/LaunchAgents && launchctl bootstrap gui/`id -u` ~/Library/LaunchAgents/block.plist && ";
-    cmd += "/usr/local/libexec/block";
+    cmd += "/usr/local/libexec/block"; */
     for (std::string s : names) {
         int pos = s.find(' ');
         while (pos != std::string::npos) {
