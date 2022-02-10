@@ -35,8 +35,8 @@ void block(std::vector<std::string> apps) {
             else
                 if (s.size() > 3 && s.substr(s.size() - 4) == ".app")
                     s = s.substr(0, s.size() - 4);
-            std::string cmd = "killall " + s;
-            cmd += " 2>/dev/null";
+            std::string cmd = "killall \"" + s;
+            cmd += "\" 2>/dev/null";
             system(cmd.c_str());
         }
 }
