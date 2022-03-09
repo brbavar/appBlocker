@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <cstdio>
 #include <string>
@@ -8,6 +9,7 @@
 #include <random>
 #include <algorithm>   // std::find
 
+/*  */
 const std::array<std::string,4> appDir = { "/Applications", "/System/Applications", 
     "/System/Library/CoreServices", "~/Downloads" };
 
@@ -21,6 +23,7 @@ std::vector<std::string> getSavedNames();
 std::vector<std::string> saveNames(std::vector<std::string>, std::vector<std::string>);
 void spawnProc(std::vector<std::string>, std::vector<std::string>);
 
+// Return the output of a shell command, namely cmd.
 std::string run(std::string cmd, int size = 100) {
     std::string output = "";
     char buf[size];
@@ -35,6 +38,7 @@ std::string run(std::string cmd, int size = 100) {
     return output;
 }
 
+/*  */
 std::vector<std::string> getApps() {
     std::vector<std::string> apps;
     apps.reserve(50);
@@ -56,25 +60,19 @@ std::vector<std::string> getApps() {
     return apps;
 }
 
+/* Extract from a string all lines separated by newline characters, and return vector 
+   of those lines.*/
 std::vector<std::string> getListItems(std::string list) {
-    if (list.find('\n') == std::string::npos) {
-        if(list.size())
-            return { list };
-        return {};
-    }
-
     std::vector<std::string> items;
-    std::string item = "";
-    for (char c : list)
-        if (c != '\n')
-            item += c;
-        else {
-            items.push_back(item);
-            item = "";
-        }
+    std::stringstream listream(list);
+    std::string line;
+    while (std::getline(listream, line, '\n'))
+        items.push_back(line);
     return items;
 }
 
+/* Read property list file for this app. Return name of bundle or executable, depending on 
+   whether the string app - the app name entered by the user - contains spaces. */
 std::string readPlist(std::string app, bool nameHasSpaces) {
     std::string cmd = "defaults read \"" + app;
     cmd += "/Contents/Info\" CFBundle";
@@ -83,6 +81,8 @@ std::string readPlist(std::string app, bool nameHasSpaces) {
     return name;
 }
 
+/* Get names of executables (for app entries with spaces) or of bundles (for app entries without spaces)
+   from blocklist. */
 std::vector<std::string> getNames(std::string middle, std::string end, bool nameHasSpaces) {
     std::string cmd = "find " + middle + end;
     std::string srchRes = run(cmd);
@@ -116,6 +116,7 @@ std::vector<std::string> getNames(std::string middle, std::string end, bool name
     return names;
 }
 
+/*  */
 bool canBlock(std::string name, std::vector<std::string>& names, std::vector<std::string> allNames) {    
     if (find(allNames.begin(), allNames.end(), name) != allNames.end()) {
         names.push_back(name);
@@ -174,6 +175,7 @@ bool canBlock(std::string name, std::vector<std::string>& names, std::vector<std
     return false;
 }
 
+// Pull all names from list of apps to block. Then return a vector of all those names.
 std::vector<std::string> getSavedNames() {
     std::vector<std::string> savedNames;
     system("chmod 400 .blocklist.txt 2>/dev/null");
@@ -190,6 +192,7 @@ std::vector<std::string> getSavedNames() {
     return savedNames;
 }
 
+// Add user-specified names to list of apps to block. Then return a vector of all apps in list.
 std::vector<std::string> saveNames(std::vector<std::string> newNames, std::vector<std::string> savedNames) {
     std::vector<std::string> apps;
     apps.reserve(newNames.size() + savedNames.size());
@@ -209,6 +212,7 @@ std::vector<std::string> saveNames(std::vector<std::string> newNames, std::vecto
     return apps;
 }
 
+/*  */
 void spawnProc(std::vector<std::string> procNames, std::vector<std::string> names) {    
     std::string cmd = "g++ -std=c++11 block.cpp -o block && ./block";/* && mv block /usr/local/libexec && /usr/libexec/PlistBuddy -c ";
     cmd += "'add Label string block' -c 'add AbandonProcessGroup bool true' -c 'add KeepAlive bool true' -c 'add RunAtLoad bool true' "; 
@@ -229,10 +233,15 @@ void spawnProc(std::vector<std::string> procNames, std::vector<std::string> name
 }
 
 int main() {
-    std::cout << '\n' << "Let's start blocking some apps. Type the name" << '\n' << "of the app you want to block, and then" << '\n' << "press " <<
-        "the enter/return key exactly once." << '\n' << "Repeat this process for every app you want" << '\n' << "to block. Once you " <<
-        "have entered the final" << '\n' << "app's name, press enter/return twice to start" << '\n' << "blocking all the apps you've " <<
-        "listed." << '\n' << '\n';
+    std::string output = "Let's start blocking some apps. Type the name of the app you want to block, and then ";
+    output += "press the enter/return key exactly once. Repeat this process for every app you want to block. ";
+    output += "Once you have entered the final app's name, press enter/return twice to start blocking all the ";
+    output += "apps you've listed.";
+    std::string cmd = "echo \"" + output;
+    cmd += "\" | fold -s";
+    std::cout << '\n';
+    system(cmd.c_str());
+    std::cout << '\n';
     auto newApps = getApps();
 
     std::cout << "Loading..." << '\n';
