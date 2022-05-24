@@ -61,7 +61,7 @@ std::vector<std::string> getApps() {
 }
 
 /* Extract from a string all lines separated by newline characters, and return vector 
-   of those lines.*/
+   of those lines. */
 std::vector<std::string> getListItems(std::string list) {
     std::vector<std::string> items;
     std::stringstream listream(list);
@@ -133,7 +133,7 @@ bool canBlock(std::string name, std::vector<std::string>& names, std::vector<std
         bndlName = name.substr(0, name.size() - 4);
 
     bool deeperToGo = true, nameHasSpaces = appName.find(' ') != std::string::npos;
-    std::string end = " 2>/dev/null | grep '" + appName + "$'";
+    std::string end = " >nul 2>&1 | grep '" + appName + "$'";
     std::string middle;
 
     std::cout << "Loading..." << '\n';
@@ -153,14 +153,14 @@ bool canBlock(std::string name, std::vector<std::string>& names, std::vector<std
                 return true;
 
             int ind = (i + 1) * 2 - 1;
-            cmd[ind - 1] = "find " + appDir[i] + depth[1] + " 2>/dev/null";
-            cmd[ind] = "find " + middle + " 2>/dev/null";
+            cmd[ind - 1] = "find " + appDir[i] + depth[1] + " >nul 2>&1";
+            cmd[ind] = "find " + middle + " >nul 2>&1";
             numResGrows[i] = run(cmd[ind - 1]).size() > run(cmd[ind]).size();
         }
         deeperToGo = numResGrows[0] || numResGrows[1] || numResGrows[2] || numResGrows[3];
     }
 
-    end = bndlName + "' -regex '.*\\.app$' 2>/dev/null | grep -v '\\.app/'";
+    end = bndlName + "' -regex '.*\\.app$' >nul 2>&1 | grep -v '\\.app/'";
     nameHasSpaces = bndlName.find(' ') != std::string::npos;
 
     for (int i = 0; i < 4; i++) {
@@ -178,7 +178,7 @@ bool canBlock(std::string name, std::vector<std::string>& names, std::vector<std
 // Pull all names from list of apps to block. Then return a vector of all those names.
 std::vector<std::string> getSavedNames() {
     std::vector<std::string> savedNames;
-    system("chmod 400 .blocklist.txt 2>/dev/null");
+    system("chmod 400 .blocklist.txt >nul 2>&1");
     std::ifstream log(".blocklist.txt");
     if (log.is_open())
         while (!log.eof()) {
@@ -188,7 +188,7 @@ std::vector<std::string> getSavedNames() {
                 savedNames.push_back(savedName);
         }
     log.close();
-    system("chmod 000 .blocklist.txt 2>/dev/null");
+    system("chmod 000 .blocklist.txt >nul 2>&1");
     return savedNames;
 }
 
@@ -196,7 +196,7 @@ std::vector<std::string> getSavedNames() {
 std::vector<std::string> saveNames(std::vector<std::string> newNames, std::vector<std::string> savedNames) {
     std::vector<std::string> apps;
     apps.reserve(newNames.size() + savedNames.size());
-    system("chmod 200 .blocklist.txt 2>/dev/null");
+    system("chmod 200 .blocklist.txt >nul 2>&1");
     std::ofstream log(".blocklist.txt", std::ios_base::app);
     if (log.is_open())
         for (std::string s : newNames) {
@@ -206,7 +206,7 @@ std::vector<std::string> saveNames(std::vector<std::string> newNames, std::vecto
             }
         }
     log.close();
-    system("chmod 000 .blocklist.txt 2>/dev/null");
+    system("chmod 000 .blocklist.txt >nul 2>&1");
     for (std::string s : savedNames)
         apps.push_back(s);
     return apps;
@@ -214,12 +214,19 @@ std::vector<std::string> saveNames(std::vector<std::string> newNames, std::vecto
 
 /*  */
 void spawnProc(std::vector<std::string> procNames, std::vector<std::string> names) {    
-    std::string cmd = "g++ -std=c++11 block.cpp -o block && ./block";/* && mv block /usr/local/libexec && /usr/libexec/PlistBuddy -c ";
-    cmd += "'add Label string block' -c 'add AbandonProcessGroup bool true' -c 'add KeepAlive bool true' -c 'add RunAtLoad bool true' "; 
-    cmd += "-c 'add ProgramArguments array' -c 'add ProgramArguments: string /usr/local/libexec/block' block.plist && ";
-    cmd += "chmod 644 block.plist && chown `whoami` block.plist && ";
-    cmd += "mv block.plist ~/Library/LaunchAgents && launchctl bootstrap gui/`id -u` ~/Library/LaunchAgents/block.plist && ";
-    cmd += "/usr/local/libexec/block"; */
+    std::string cmd = "g++ -std=c++11 block.cpp -o block && mv block /usr/local/libexec && /usr/libexec/PlistBuddy -c ";
+    cmd += "'add Label string block' -c 'add AbandonProcessGroup bool true' -c 'add KeepAlive bool true' -c 'add RunAtLoad bool true'";
+    cmd += " -c 'add ProgramArguments array'";
+
+    std::string subcmd = " -c 'add ProgramArguments: string ";
+    cmd += subcmd + "/usr/local/libexec/block' ";
+    for (std::string s : names)
+        cmd += subcmd + s + "' ";
+
+    cmd += "block.plist >nul 2>&1 && chmod 644 block.plist >nul 2>&1 && chown `whoami` block.plist >nul 2>&1 && ";
+    cmd += "mv block.plist ~/Library/LaunchAgents >nul 2>&1 && sudo launchctl bootstrap gui/`id -u` ~/Library/LaunchAgents/block.plist >nul 2>&1 && ";
+    cmd += "nohup /usr/local/libexec/block >nul 2>&1";
+
     for (std::string s : names) {
         int pos = s.find(' ');
         while (pos != std::string::npos) {
@@ -229,20 +236,56 @@ void spawnProc(std::vector<std::string> procNames, std::vector<std::string> name
         }
         cmd += " " + s;
     }
+
+    std::cout << "The specified apps are now blocked." << '\n' << '\n';
+    std::string usr = run("whoami");
+    std::cout << "The current user of this Mac is " << usr << ". If prompted to do so, enter " 
+              << usr << "'s password to " << "ensure the apps stay blocked when this computer "
+              << "is restarted." << '\n';
+
     system(cmd.c_str());
 }
 
+
+
 int main() {
-    std::string output = "Let's start blocking some apps. Type the name of the app you want to block, and then ";
-    output += "press the enter/return key exactly once. Repeat this process for every app you want to block. ";
-    output += "Once you have entered the final app's name, press enter/return twice to start blocking all the ";
-    output += "apps you've listed.";
-    std::string cmd = "echo \"" + output;
-    cmd += "\" | fold -s";
-    std::cout << '\n';
-    system(cmd.c_str());
-    std::cout << '\n';
+    std::cout << '\n' << "Let's start blocking some apps. Type the name of an app you want to block, and then "
+              << "press the enter/return key exactly once. Repeat this process for every app you want to block. "
+              << "Once you have entered the final app's name, press enter/return twice to start blocking all the "
+              << "apps you've listed." << '\n' << '\n';
     auto newApps = getApps();
+
+    std::cout << "Would you like to block these apps for a certain period of time (starting now), "
+              << "on a schedule (e.g., Mondays and Wednesdays, or 8am to 5pm every day), or indefinitely" 
+              <<  " until you enter a password I have generated randomly and refuse to show you?" 
+              << '\n' << '\n'
+              << "a: amount of time" << '\n'
+              << "s: schedule" << '\n'
+              << "p: password";
+    char menuChoice;
+    std::cin >> menuChoice;
+    switch (menuChoice)
+    {
+        case 'a':
+            std::cout << "How long do you want to be unable to use the apps? Answer by typing the "
+                      << "number of seconds, minutes, hours, days, weeks, or years, followed by"
+                      << " the abbreviated unit s, m, h, d, w, or y, respectively. If you want to "
+                      << "use multiple units in your answer, simply type each number, along with its unit, on a "
+                      << "separate line." << '\n';
+            std::string time = ;
+            while () {
+                std::cin >> 
+                if ()
+                    break;
+            }
+            break;
+        case 's':
+
+            break;
+        case 'p':
+
+            break;
+    }
 
     std::cout << "Loading..." << '\n';
     std::vector<std::string> allNames;
@@ -252,7 +295,7 @@ int main() {
         find += "/.*\\.app/Contents/Info.plist$'";
         auto plists = getListItems(run(find));
         for (std::string s : plists)
-            allNames.push_back(run("defaults read '" + s + "' CFBundleExecutable 2>/dev/null"));
+            allNames.push_back(run("defaults read '" + s + "' CFBundleExecutable >nul 2>&1"));
     }
 
     int size = newApps.size();
@@ -260,10 +303,10 @@ int main() {
     for (int i = 0; i < size; i++) {
         std::string name = newApps[i];
         while (!canBlock(name, newNames, allNames)) {
-            std::cout << '\n' << "The name \"" << name << "\" does not match any app on your device. Try entering a different" <<
-                " name. Hint: If you look in your /Applications (the most likely location), /System/Applications, " <<
-                "/System/Library/CoreServices, and ~/Downloads folders, you should be able to find the exact name of" << 
-                " the app you're attempting to block." << '\n' << '\n';
+            std::cout << '\n' << "The name \"" << name << "\" does not match any app on your device. Try entering a different" 
+                      << " name. Hint: If you look in your /Applications (the most likely location), /System/Applications, " 
+                      << "/System/Library/CoreServices, and ~/Downloads folders, you should be able to find the exact name of" 
+                      << " the app you're attempting to block." << '\n' << '\n';
             std::getline(std::cin, name);
             newApps.push_back(name);
         }
