@@ -213,37 +213,24 @@ std::vector<std::string> saveNames(std::vector<std::string> newNames, std::vecto
 }
 
 /*  */
-void spawnProc(std::vector<std::string> procNames, std::vector<std::string> names) {    
-    std::string cmd = "g++ -std=c++11 block.cpp -o block && mv block /usr/local/libexec && /usr/libexec/PlistBuddy -c ";
-    cmd += "'add Label string block' -c 'add AbandonProcessGroup bool true' -c 'add KeepAlive bool true' -c 'add RunAtLoad bool true'";
-    cmd += " -c 'add ProgramArguments array'";
-
-    std::string subcmd = " -c 'add ProgramArguments: string ";
-    cmd += subcmd + "/usr/local/libexec/block' ";
-    for (std::string s : names)
-        cmd += subcmd + s + "' ";
-
-    cmd += "block.plist >nul 2>&1 && chmod 644 block.plist >nul 2>&1 && chown `whoami` block.plist >nul 2>&1 && ";
-    cmd += "mv block.plist ~/Library/LaunchAgents >nul 2>&1 && sudo launchctl bootstrap gui/`id -u` ~/Library/LaunchAgents/block.plist >nul 2>&1 && ";
-    cmd += "nohup /usr/local/libexec/block >nul 2>&1";
-
-    for (std::string s : names) {
-        int pos = s.find(' ');
-        while (pos != std::string::npos) {
-            s.insert(s.begin() + pos, ':');
-            s.erase(s.begin() + pos + 1);
-            pos = s.find(' ');
-        }
-        cmd += " " + s;
+void block(std::vector<std::string> apps) { 
+    for (std::string s : apps) {
+        if (!s.size())
+            continue;
+        else
+            if (s.size() > 3 && s.substr(s.size() - 4) == ".app")
+                s = s.substr(0, s.size() - 4);
+        std::string cmd = "killall \"" + s;
+        // cmd += "\" >nul 2>&1 && chmod -x \"" + /* full path to executable file at [APP NAME].app/Contents/MacOS/[value of key "CFBundleExecutable"] */; 
+        cmd += "\" >nul 2>&1";
+        system(cmd.c_str());
     }
 
     std::cout << "The specified apps are now blocked." << '\n' << '\n';
-    std::string usr = run("whoami");
-    std::cout << "The current user of this Mac is " << usr << ". If prompted to do so, enter " 
-              << usr << "'s password to " << "ensure the apps stay blocked when this computer "
-              << "is restarted." << '\n';
-
-    system(cmd.c_str());
+    // std::string usr = run("whoami");
+    // std::cout << "The current user of this Mac is " << usr << ". If prompted to do so, enter " 
+    //           << usr << "'s password to " << "ensure the apps stay blocked when this computer "
+    //           << "is restarted." << '\n';
 }
 
 
@@ -255,37 +242,37 @@ int main() {
               << "apps you've listed." << '\n' << '\n';
     auto newApps = getApps();
 
-    std::cout << "Would you like to block these apps for a certain period of time (starting now), "
-              << "on a schedule (e.g., Mondays and Wednesdays, or 8am to 5pm every day), or indefinitely" 
-              <<  " until you enter a password I have generated randomly and refuse to show you?" 
-              << '\n' << '\n'
-              << "a: amount of time" << '\n'
-              << "s: schedule" << '\n'
-              << "p: password";
-    char menuChoice;
-    std::cin >> menuChoice;
-    switch (menuChoice)
-    {
-        case 'a':
-            std::cout << "How long do you want to be unable to use the apps? Answer by typing the "
-                      << "number of seconds, minutes, hours, days, weeks, or years, followed by"
-                      << " the abbreviated unit s, m, h, d, w, or y, respectively. If you want to "
-                      << "use multiple units in your answer, simply type each number, along with its unit, on a "
-                      << "separate line." << '\n';
-            std::string time = ;
-            while () {
-                std::cin >> 
-                if ()
-                    break;
-            }
-            break;
-        case 's':
+    // std::cout << "Would you like to block these apps for a certain period of time (starting now), "
+    //           << "on a schedule (e.g., Mondays and Wednesdays, or 8am to 5pm every day), or indefinitely" 
+    //           <<  " until you enter a password I have generated randomly and refuse to show you?" 
+    //           << '\n' << '\n'
+    //           << "a: amount of time" << '\n'
+    //           << "s: schedule" << '\n'
+    //           << "p: password";
+    // char menuChoice;
+    // std::cin >> menuChoice;
+    // switch (menuChoice)
+    // {
+    //     case 'a':
+    //         std::cout << "How long do you want to be unable to use the apps? Answer by typing the "
+    //                   << "number of seconds, minutes, hours, days, weeks, or years, followed by"
+    //                   << " the abbreviated unit s, m, h, d, w, or y, respectively. If you want to "
+    //                   << "use multiple units in your answer, simply type each number, along with its unit, on a "
+    //                   << "separate line." << '\n';
+    //         std::string time = ;
+    //         while () {
+    //             std::cin >> 
+    //             if ()
+    //                 break;
+    //         }
+    //         break;
+    //     case 's':
 
-            break;
-        case 'p':
+    //         break;
+    //     case 'p':
 
-            break;
-    }
+    //         break;
+    // }
 
     std::cout << "Loading..." << '\n';
     std::vector<std::string> allNames;
@@ -295,7 +282,7 @@ int main() {
         find += "/.*\\.app/Contents/Info.plist$'";
         auto plists = getListItems(run(find));
         for (std::string s : plists)
-            allNames.push_back(run("defaults read '" + s + "' CFBundleExecutable >nul 2>&1"));
+            allNames.push_back(run("defaults read '" + s + "' CFBundleExecutable"));
     }
 
     int size = newApps.size();
@@ -313,9 +300,7 @@ int main() {
     }
 
     auto savedNames = getSavedNames();
-    auto names = saveNames(newNames, savedNames);
+    auto apps = saveNames(newNames, savedNames);
 
-    std::string procList = run("ps -ce | grep -v grep | awk '{print $4}'");
-    auto procNames = getListItems(procList);
-    spawnProc(procNames, names);
+    block(apps);
 }
