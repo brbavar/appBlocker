@@ -5,7 +5,7 @@ To use the app blocker on Mac, clone this repo and execute the following command
 cd appBlocker/mac
 ./appBlocker
 ```
-On Windows:
+Or these commands on Windows:
 ```
 dir appBlocker/win
 start blockStarter.exe
