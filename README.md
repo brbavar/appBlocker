@@ -2,11 +2,11 @@ WARNING: Currently, once you block an app, you cannot unblock it without knowing
 
 To use the app blocker on Mac, clone this repo and execute the following commands: 
  ```
-cd mac
+cd appBlocker/mac
 ./appBlocker
 ```
 On Windows:
 ```
-dir win
+dir appBlocker/win
 ./blockStarter.exe
 ```
