@@ -8,5 +8,5 @@ cd appBlocker/mac
 On Windows:
 ```
 dir appBlocker/win
-./blockStarter.exe
+start blockStarter.exe
 ```
