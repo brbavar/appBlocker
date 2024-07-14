@@ -7,6 +7,6 @@ cd mac
 ```
 On Windows:
 ```
-cd win
+dir win
 ./blockStarter.exe
 ```
