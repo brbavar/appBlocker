@@ -8,5 +8,5 @@ cd mac
 On Windows:
 ```
 cd win
-./block
+./blockStarter.exe
 ```
